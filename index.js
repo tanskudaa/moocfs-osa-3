@@ -1,7 +1,9 @@
 const express = require('express')
+const cors = require('cors')
 const morgan = require('morgan')
 const app = express()
 
+app.use(cors())
 app.use(express.json())
 
 morgan.token('body', (req) => {
@@ -9,6 +11,7 @@ morgan.token('body', (req) => {
 })
 
 app.use(morgan(':method :url :status :res[content-length] - :response-time ms :body'))
+
 
 const MAX_ID = Number.MAX_SAFE_INTEGER
 
@@ -63,13 +66,20 @@ app.get('/api/persons/:id', (req, res) => {
 //
 // Generate id
 const generateId = (count = 0) => {
-    const id = Math.round(Math.random() * MAX_ID)
+    const id = Math.ceil(Math.random() * MAX_ID)
+
     if (persons.find(a => a.id === id)) {
-        console.log(`id ${id} taken, generating new...`)
-        return generateId(count + 1)
+        // console.log(`id ${id} taken, generating new...`)
+        if (count > 10) {
+            console.log('too many id generate requests! aborting')
+            return -1
+        }
+        else {
+            return generateId(count + 1)
+        }
     }
     else {
-        console.log(`found unique id ${id}, returning for POST call`)
+        // console.log(`found unique id ${id}, returning for POST call`)
         return id
     }
 }
@@ -98,14 +108,22 @@ app.post('/api/persons', (req, res) => {
 
     // Create and add new entry
     else {
-        const newPerson = {
-            name: body.name,
-            number: body.number,
-            id: generateId()
+        const id = generateId()
+        if (id === -1) {
+            return res.status(400).json({
+                error: 'error generating entry id'
+            })
         }
+        else {
+            const newPerson = {
+                name: body.name,
+                number: body.number,
+                id: id
+            }
 
-        persons = persons.concat(newPerson)
-        res.json(newPerson)
+            persons = persons.concat(newPerson)
+            res.json(newPerson)
+        }
     }
 })
 
@@ -120,8 +138,7 @@ app.delete('/api/persons/:id', (req, res) => {
 })
 
 
-const PORT = 3001
+const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`)
 })
-
