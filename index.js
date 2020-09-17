@@ -1,7 +1,14 @@
 const express = require('express')
+const morgan = require('morgan')
 const app = express()
 
 app.use(express.json())
+
+morgan.token('body', (req) => {
+    return JSON.stringify(req.body)
+})
+
+app.use(morgan(':method :url :status :res[content-length] - :response-time ms :body'))
 
 const MAX_ID = Number.MAX_SAFE_INTEGER
 
@@ -62,7 +69,7 @@ const generateId = (count = 0) => {
         return generateId(count + 1)
     }
     else {
-        console.log(`found unique id ${id}, returning`)
+        console.log(`found unique id ${id}, returning for POST call`)
         return id
     }
 }
