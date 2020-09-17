@@ -3,6 +3,8 @@ const app = express()
 
 app.use(express.json())
 
+const MAX_ID = Number.MAX_SAFE_INTEGER
+
 
 let persons = [
     {
@@ -27,10 +29,10 @@ let persons = [
 //
 // Info
 app.get('/info', (req, res) => {
-    info = (
-        '<p>Hello</p>',
-        '<p>Hell-o</p>'
-    )
+    info = (`\
+        <p>Phonebook has info for ${persons.length} people</p>
+        <p>${new Date}</p>
+    `)
     res.send(info)
 })
 // All persons
@@ -53,31 +55,51 @@ app.get('/api/persons/:id', (req, res) => {
 // HTTP POST
 //
 // Generate id
-const generateId = () => {
-    const maxId = persons.length > 0
-        ? Math.max(...persons.map(a => a.id))
-        : 0
-
-    return maxId + 1
+const generateId = (count = 0) => {
+    const id = Math.round(Math.random() * MAX_ID)
+    if (persons.find(a => a.id === id)) {
+        console.log(`id ${id} taken, generating new...`)
+        return generateId(count + 1)
+    }
+    else {
+        console.log(`found unique id ${id}, returning`)
+        return id
+    }
 }
 // New person
 app.post('/api/persons', (req, res) => {
     const body = req.body
 
-    if (!body.name || !body.number) {
-        return response.status(400).json({
-            error: 'name and/or number missing'
+    // Must have name
+    if (!body.name) {
+        return res.status(400).json({
+            error: 'must supply name'
+        })
+    }
+    // Name must be unique
+    else if (persons.find(a => a.name === body.name) !== undefined) {
+        return res.status(400).json({
+            error: 'name must be unique'
+        })
+    }
+    // Must have number
+    else if (!body.number) {
+        return res.status(400).json({
+            error: 'must supply number'
         })
     }
 
-    const newPerson = {
-        name: body.name,
-        number: body.number,
-        id: generateId()
-    }
+    // Create and add new entry
+    else {
+        const newPerson = {
+            name: body.name,
+            number: body.number,
+            id: generateId()
+        }
 
-    persons = persons.concat(newPerson)
-    res.json(newPerson)
+        persons = persons.concat(newPerson)
+        res.json(newPerson)
+    }
 })
 
 //
