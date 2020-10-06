@@ -1,7 +1,9 @@
+require('dotenv').config()
 const express = require('express')
 const cors = require('cors')
 const morgan = require('morgan')
 const app = express()
+const Person = require('./models/person')
 
 app.use(express.static('build'))
 app.use(cors())
@@ -16,7 +18,7 @@ app.use(morgan(':method :url :status :res[content-length] - :response-time ms :b
 
 const MAX_ID = Number.MAX_SAFE_INTEGER
 
-
+/*
 let persons = [
     {
         name: "Arto Hellas",
@@ -34,6 +36,7 @@ let persons = [
         id: 3
     }
 ]
+*/
 
 //
 // HTTP GET
@@ -47,11 +50,22 @@ app.get('/info', (req, res) => {
     res.send(info)
 })
 // All persons
-app.get('/api/persons', (req, res) => {
+app.get('/api/persons', (request, response) => {
+    let persons = []
+    Person.find({}).then(result => {
+        result.forEach(a => {
+            persons = persons.concat(a)
+        })
+        response.json(persons)
+    })
+    /*
     res.json(persons)
+    */
 })
 // Individual persons
 app.get('/api/persons/:id', (req, res) => {
+    Person.findById(req.params.id).then(person => res.json(person))
+    /*
     const id = Number(req.params.id)
     const person = persons.find(a => a.id === id)
     if (person) {
@@ -60,6 +74,7 @@ app.get('/api/persons/:id', (req, res) => {
     else {
         res.status(404).end()
     }
+    */
 })
 
 // 
@@ -95,11 +110,13 @@ app.post('/api/persons', (req, res) => {
         })
     }
     // Name must be unique
+    /*
     else if (persons.find(a => a.name === body.name) !== undefined) {
         return res.status(400).json({
             error: 'name must be unique'
         })
     }
+    */
     // Must have number
     else if (!body.number) {
         return res.status(400).json({
@@ -108,6 +125,15 @@ app.post('/api/persons', (req, res) => {
     }
 
     // Create and add new entry
+    else {
+        const person = new Person({
+            name: body.name,
+            number: body.number
+        })
+
+        person.save().then(savedPerson => res.json(savedPerson))
+    }
+    /*
     else {
         const id = generateId()
         if (id === -1) {
@@ -126,6 +152,7 @@ app.post('/api/persons', (req, res) => {
             res.json(newPerson)
         }
     }
+    */
 })
 
 //
@@ -139,7 +166,7 @@ app.delete('/api/persons/:id', (req, res) => {
 })
 
 
-const PORT = process.env.PORT || 3001
+const PORT = process.env.PORT
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`)
 })
